@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prêt PC</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+    const STORAGE_KEY = "prets-pc-data";
+
+    function GestionPretPC() {
+      const [pretsActifs, setPretsActifs] = useState([]);
+      const [historique, setHistorique] = useState([]);
+      const [sigle, setSigle] = useState("");
+      const [nbPC, setNbPC] = useState("");
+      const [retours, setRetours] = useState({});
+      const [onglet, setOnglet] = useState("actif");
+      const [loading, setLoading] = useState(true);
+      const [error, setError] = useState(null);
+      const sigleRef = useRef(null);
+
+      useEffect(() => {
+        loadData();
+      }, []);
+
+      useEffect(() => {
+        if (!loading && sigleRef.current) {
+          sigleRef.current.focus();
+        }
+      }, [loading]);
+
+      const loadData = () => {
+        try {
+          const stored = localStorage.getItem(STORAGE_KEY);
+          if (stored) {
+            const data = JSON.parse(stored);
+            setPretsActifs(data.pretsActifs || []);
+            setHistorique(data.historique || []);
+          }
+        } catch (e) {
+          console.log("Init stockage");
+        }
+        setLoading(false);
+      };
+
+      const saveData = (newPrets, newHisto) => {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({
+            pretsActifs: newPrets,
+            historique: newHisto,
+          }));
+        } catch (e) {
+          console.error("Erreur sauvegarde");
+        }
+      };
+
+      const totalPC = pretsActifs.reduce((s, p) => s + (p.nbPC - p.retournes), 0);
+
+      const ajouterPret = () => {
+        const s = sigle.trim().toUpperCase();
+        const n = parseInt(nbPC, 10);
+
+        if (!s || s.length < 2 || s.length > 4) {
+          setError("Sigle: 2-4 lettres");
+          return;
+        }
+        if (!n || n < 1) {
+          setError("Nombre de PC invalide");
+          return;
+        }
+
+        setError(null);
+        const now = new Date();
+        
+        const pret = {
+          id: Date.now(),
+          sigle: s,
+          nbPC: n,
+          retournes: 0,
+          heure: now.toLocaleTimeString("fr-BE", { hour: "2-digit", minute: "2-digit" }),
+          timestamp: now.toISOString(),
+        };
+
+        const histo = {
+          id: Date.now(),
+          timestamp: now.toISOString(),
+          sigle: s,
+          action: `prêt de ${n} PC`,
+          type: "pret",
+        };
+
+        const newPrets = [pret, ...pretsActifs];
+        const newHisto = [histo, ...historique];
+
+        setPretsActifs(newPrets);
+        setHistorique(newHisto);
+        saveData(newPrets, newHisto);
+        setSigle("");
+        setNbPC("");
+        sigleRef.current?.focus();
+      };
+
+      const faireRetourComplet = (pretId) => {
+        const pret = pretsActifs.find((p) => p.id === pretId);
+        if (!pret) return;
+
+        const restant = pret.nbPC - pret.retournes;
+        const now = new Date();
+
+        const histo = {
+          id: Date.now(),
+          timestamp: now.toISOString(),
+          sigle: pret.sigle,
+          action: `retour de ${restant} PC`,
+          type: "retour",
+        };
+
+        const newPrets = pretsActifs.filter((p) => p.id !== pretId);
+        const newHisto = [histo, ...historique];
+        
+        setPretsActifs(newPrets);
+        setHistorique(newHisto);
+        saveData(newPrets, newHisto);
+      };
+
+      const faireRetourPartiel = (pretId) => {
+        const nb = parseInt(retours[pretId + "_nb"], 10);
+        const pret = pretsActifs.find((p) => p.id === pretId);
+        if (!pret) return;
+
+        const restant = pret.nbPC - pret.retournes;
+        if (!nb || nb < 1 || nb >= restant) {
+          setError(`Nombre invalide (1 à ${restant - 1})`);
+          return;
+        }
+
+        setError(null);
+        const now = new Date();
+
+        const histo = {
+          id: Date.now(),
+          timestamp: now.toISOString(),
+          sigle: pret.sigle,
+          action: `retour de ${nb} PC`,
+          type: "retour",
+        };
+
+        const newPrets = pretsActifs.map((p) =>
+          p.id === pretId ? { ...p, retournes: p.retournes + nb } : p
+        );
+
+        const newHisto = [histo, ...historique];
+        setPretsActifs(newPrets);
+        setHistorique(newHisto);
+        setRetours({ ...retours, [pretId]: "", [pretId + "_nb"]: "" });
+        saveData(newPrets, newHisto);
+      };
+
+      const formatDT = (iso) => {
+        const d = new Date(iso);
+        return d.toLocaleDateString("fr-BE") + " " + d.toLocaleTimeString("fr-BE", { hour: "2-digit", minute: "2-digit" });
+      };
+
+      const exportCSV = () => {
+        const csv = ["Date/Heure;Sigle;Action", ...historique.map((h) => `${formatDT(h.timestamp)};${h.sigle};${h.action}`)].join("\n");
+        const blob = new Blob([csv], { type: "text/csv" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `prets-${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+      };
+
+      const handleKeyDown = (e, action) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          action();
+        }
+      };
+
+      if (loading) {
+        return <div className="min-h-screen bg-gray-100 flex items-center justify-center"><p>Chargement...</p></div>;
+      }
+
+      return (
+        <div className="min-h-screen bg-gray-100 p-4">
+          <div className="max-w-2xl mx-auto">
+            
+            {/* Header */}
+            <div className="bg-white rounded-lg shadow p-4 mb-4">
+              <div className="flex justify-between items-center">
+                <h1 className="text-xl font-bold text-gray-800">Prêt PC</h1>
+                <div className="text-right">
+                  <span className="text-2xl font-bold text-blue-600">{totalPC}</span>
+                  <span className="text-gray-600 ml-1">PC en circulation</span>
+                </div>
+              </div>
+              <p className="text-amber-600 text-sm mt-2">💡 N'oublie pas les chargeurs !</p>
+            </div>
+
+            {/* Erreur */}
+            {error && (
+              <div className="bg-red-100 border border-red-300 text-red-700 px-4 py-2 rounded mb-4 flex justify-between">
+                <span>{error}</span>
+                <button onClick={() => setError(null)} className="font-bold">×</button>
+              </div>
+            )}
+
+            {/* Saisie prêt */}
+            <div className="bg-white rounded-lg shadow p-4 mb-4">
+              <div className="flex gap-2">
+                <input
+                  ref={sigleRef}
+                  type="text"
+                  placeholder="Sigle (ABC)"
+                  value={sigle}
+                  onChange={(e) => setSigle(e.target.value.toUpperCase())}
+                  onKeyDown={(e) => handleKeyDown(e, ajouterPret)}
+                  maxLength={4}
+                  className="flex-1 border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <input
+                  type="number"
+                  placeholder="Nb"
+                  value={nbPC}
+                  onChange={(e) => setNbPC(e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(e, ajouterPret)}
+                  min="1"
+                  className="w-20 border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                  type="button"
+                  onClick={ajouterPret}
+                  className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 font-medium"
+                >
+                  Prêter
+                </button>
+              </div>
+            </div>
+
+            {/* Onglets */}
+            <div className="flex mb-4 bg-white rounded-lg shadow overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setOnglet("actif")}
+                className={`flex-1 py-2 font-medium ${onglet === "actif" ? "bg-blue-600 text-white" : "text-gray-600 hover:bg-gray-100"}`}
+              >
+                En cours ({pretsActifs.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setOnglet("historique")}
+                className={`flex-1 py-2 font-medium ${onglet === "historique" ? "bg-blue-600 text-white" : "text-gray-600 hover:bg-gray-100"}`}
+              >
+                Historique
+              </button>
+            </div>
+
+            {/* Contenu */}
+            <div className="bg-white rounded-lg shadow">
+              {onglet === "actif" ? (
+                <div className="divide-y">
+                  {pretsActifs.length === 0 ? (
+                    <p className="p-4 text-gray-500 text-center">Aucun prêt en cours</p>
+                  ) : (
+                    pretsActifs.map((pret) => {
+                      const restant = pret.nbPC - pret.retournes;
+                      const showPartiel = retours[pret.id] === "partiel";
+                      return (
+                        <div key={pret.id} className="p-3 flex items-center gap-3 flex-wrap">
+                          <span className="font-bold text-gray-800 w-12">{pret.sigle}</span>
+                          <span className="text-blue-600 font-medium">
+                            {restant} PC
+                            {pret.retournes > 0 && <span className="text-gray-400 text-sm"> /{pret.nbPC}</span>}
+                          </span>
+                          <span className="text-gray-400 text-sm">{pret.heure}</span>
+                          <div className="flex-1" />
+                          {showPartiel ? (
+                            <div className="flex gap-2 items-center">
+                              <input
+                                type="number"
+                                placeholder="Nb"
+                                autoFocus
+                                value={retours[pret.id + "_nb"] || ""}
+                                onChange={(e) => setRetours({ ...retours, [pret.id + "_nb"]: e.target.value })}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") faireRetourPartiel(pret.id);
+                                  if (e.key === "Escape") setRetours({ ...retours, [pret.id]: "" });
+                                }}
+                                min="1"
+                                max={restant - 1}
+                                className="w-16 border border-gray-300 rounded px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-orange-500"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => faireRetourPartiel(pret.id)}
+                                className="bg-orange-500 text-white px-3 py-1 rounded hover:bg-orange-600 text-sm"
+                              >
+                                OK
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setRetours({ ...retours, [pret.id]: "" })}
+                                className="text-gray-400 hover:text-gray-600 text-sm"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={() => faireRetourComplet(pret.id)}
+                                className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 text-sm"
+                              >
+                                Tout ({restant})
+                              </button>
+                              {restant > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => setRetours({ ...retours, [pret.id]: "partiel" })}
+                                  className="bg-orange-500 text-white px-3 py-1 rounded hover:bg-orange-600 text-sm"
+                                >
+                                  Partiel
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              ) : (
+                <div>
+                  <div className="p-3 border-b flex justify-between items-center">
+                    <span className="text-gray-600 text-sm">{historique.length} événements</span>
+                    {historique.length > 0 && (
+                      <button type="button" onClick={exportCSV} className="text-blue-600 text-sm hover:underline">
+                        Exporter CSV
+                      </button>
+                    )}
+                  </div>
+                  <div className="divide-y max-h-96 overflow-y-auto">
+                    {historique.length === 0 ? (
+                      <p className="p-4 text-gray-500 text-center">Aucun historique</p>
+                    ) : (
+                      historique.map((h) => (
+                        <div key={h.id} className="p-3 flex items-center gap-3 text-sm">
+                          <span className="text-gray-400 w-32">{formatDT(h.timestamp)}</span>
+                          <span className="font-bold w-12">{h.sigle}</span>
+                          <span className={h.type === "pret" ? "text-blue-600" : "text-green-600"}>{h.action}</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <p className="text-center text-gray-400 text-xs mt-4">Données stockées localement sur ce navigateur</p>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<GestionPretPC />);
+  </script>
+</body>
+</html>
