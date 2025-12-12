@@ -45,8 +45,11 @@
       // Charger depuis Google Sheets (avec fallback localStorage)
       const loadData = async () => {
         try {
-          const response = await fetch(`${GOOGLE_SCRIPT_URL}?action=load`);
-          const data = await response.json();
+          const url = new URL(GOOGLE_SCRIPT_URL);
+          url.searchParams.append("action", "load");
+          const response = await fetch(url.toString(), { method: "GET" });
+          const text = await response.text();
+          const data = JSON.parse(text);
           if (data.error) throw new Error(data.error);
           setPretsActifs(data.pretsActifs || []);
           setHistorique(data.historique || []);
@@ -79,10 +82,12 @@
         // Puis sync avec Google
         setSyncing(true);
         try {
-          const response = await fetch(
-            `${GOOGLE_SCRIPT_URL}?action=save&data=${encodeURIComponent(JSON.stringify(data))}`
-          );
-          const result = await response.json();
+          const url = new URL(GOOGLE_SCRIPT_URL);
+          url.searchParams.append("action", "save");
+          url.searchParams.append("data", JSON.stringify(data));
+          const response = await fetch(url.toString(), { method: "GET" });
+          const text = await response.text();
+          const result = JSON.parse(text);
           if (result.error) throw new Error(result.error);
           setLastSync(new Date());
         } catch (e) {
