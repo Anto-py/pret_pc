@@ -24,7 +24,7 @@
 
     body {
       margin: 0;
-      padding: 12px;
+      padding: 32px;
       background: var(--retro-ink);
       background-image: url('images/background.jpg');
       background-size: cover;
@@ -33,6 +33,9 @@
       background-attachment: fixed;
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
     }
 
     .font-display {
@@ -45,25 +48,37 @@
     .page-frame {
       background: var(--retro-paper);
       border: 4px solid var(--retro-orange);
-      border-radius: 8px;
+      border-radius: 12px;
       position: relative;
-      min-height: calc(100vh - 24px);
-      padding: 12px;
+      padding: 16px;
+      width: 100%;
+      max-width: 720px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      margin: 16px 0;
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding: 16px;
+      }
+      .page-frame {
+        margin: 8px 0;
+      }
     }
 
     /* Motifs floraux aux coins */
     .corner-flourish {
       position: absolute;
-      width: 40px;
-      height: 40px;
+      width: 48px;
+      height: 48px;
       color: var(--retro-teal);
-      opacity: 0.5;
+      opacity: 0.6;
       pointer-events: none;
     }
-    .corner-flourish.top-left { top: 5px; left: 5px; }
-    .corner-flourish.top-right { top: 5px; right: 5px; transform: scaleX(-1); }
-    .corner-flourish.bottom-left { bottom: 5px; left: 5px; transform: scaleY(-1); }
-    .corner-flourish.bottom-right { bottom: 5px; right: 5px; transform: scale(-1); }
+    .corner-flourish.top-left { top: 8px; left: 8px; }
+    .corner-flourish.top-right { top: 8px; right: 8px; transform: scaleX(-1); }
+    .corner-flourish.bottom-left { bottom: 8px; left: 8px; transform: scaleY(-1); }
+    .corner-flourish.bottom-right { bottom: 8px; right: 8px; transform: scale(-1); }
 
     /* Cartes retrofuturistes */
     .retro-card {
@@ -481,7 +496,7 @@
 
       if (loading) {
         return (
-          <div className="page-frame flex items-center justify-center" style={{minHeight: 'calc(100vh - 24px)'}}>
+          <div className="page-frame flex items-center justify-center" style={{minHeight: '300px'}}>
             <div className="corner-flourish top-left"><CornerFlourish /></div>
             <div className="corner-flourish top-right"><CornerFlourish /></div>
             <div className="corner-flourish bottom-left"><CornerFlourish /></div>
@@ -499,7 +514,7 @@
           <div className="corner-flourish bottom-left"><CornerFlourish /></div>
           <div className="corner-flourish bottom-right"><CornerFlourish /></div>
 
-          <div style={{maxWidth: '640px', margin: '0 auto'}}>
+          <div style={{maxWidth: '680px', margin: '0 auto'}}>
             
             {/* Header */}
             <div className="retro-card mb-3">
