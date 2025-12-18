@@ -3,21 +3,284 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Prêt PC</title>
+  <title>Prêt PC — RETROFuturisme</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --retro-teal: #127676;
+      --retro-orange: #E4632E;
+      --retro-jaune: #E3A535;
+      --retro-ink: #0D1617;
+      --retro-paper: #F2EFE6;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 12px;
+      background: var(--retro-ink);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+    }
+
+    .font-display {
+      font-family: 'Anton', Impact, sans-serif;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    /* Cadre Art Nouveau */
+    .page-frame {
+      background: var(--retro-paper);
+      border: 4px solid var(--retro-orange);
+      border-radius: 8px;
+      position: relative;
+      min-height: calc(100vh - 24px);
+      padding: 24px;
+    }
+
+    /* Motifs floraux aux coins */
+    .corner-flourish {
+      position: absolute;
+      width: 50px;
+      height: 50px;
+      color: var(--retro-teal);
+      opacity: 0.5;
+      pointer-events: none;
+    }
+    .corner-flourish.top-left { top: 8px; left: 8px; }
+    .corner-flourish.top-right { top: 8px; right: 8px; transform: scaleX(-1); }
+    .corner-flourish.bottom-left { bottom: 8px; left: 8px; transform: scaleY(-1); }
+    .corner-flourish.bottom-right { bottom: 8px; right: 8px; transform: scale(-1); }
+
+    /* Cartes retrofuturistes */
+    .retro-card {
+      background: var(--retro-paper);
+      border: 3px solid var(--retro-teal);
+      border-radius: 24px 8px 24px 8px;
+      box-shadow: inset 0 0 0 2px var(--retro-orange);
+      padding: 16px;
+    }
+
+    /* Boutons pill */
+    .retro-btn-pill {
+      display: inline-flex;
+      border-radius: 50px;
+      border: 3px solid var(--retro-teal);
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .retro-btn-pill:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(18, 118, 118, 0.3);
+    }
+    .retro-btn-pill:active {
+      transform: translateY(0);
+    }
+    .retro-btn-pill-text {
+      background: var(--retro-jaune);
+      color: var(--retro-ink);
+      padding: 0.6rem 1.25rem;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    .retro-btn-pill-icon {
+      background: var(--retro-orange);
+      color: var(--retro-paper);
+      width: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+    }
+
+    /* Boutons d'action secondaires */
+    .retro-btn-action {
+      background: var(--retro-teal);
+      color: var(--retro-paper);
+      border: none;
+      border-radius: 50px;
+      padding: 0.5rem 1rem;
+      font-weight: 500;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .retro-btn-action:hover {
+      background: var(--retro-jaune);
+      color: var(--retro-ink);
+    }
+
+    .retro-btn-partiel {
+      background: var(--retro-orange);
+      color: var(--retro-paper);
+      border: none;
+      border-radius: 50px;
+      padding: 0.5rem 1rem;
+      font-weight: 500;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .retro-btn-partiel:hover {
+      background: var(--retro-jaune);
+      color: var(--retro-ink);
+    }
+
+    /* Inputs */
+    .retro-input {
+      background: var(--retro-paper);
+      border: 2px solid var(--retro-teal);
+      border-radius: 8px;
+      padding: 0.6rem 0.75rem;
+      font-size: 1rem;
+      color: var(--retro-ink);
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .retro-input:focus {
+      outline: none;
+      border-color: var(--retro-orange);
+      box-shadow: 0 0 0 3px rgba(228, 99, 46, 0.2);
+    }
+    .retro-input::placeholder {
+      color: rgba(13, 22, 23, 0.4);
+    }
+
+    /* Onglets */
+    .retro-tab {
+      flex: 1;
+      padding: 0.75rem;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s ease;
+      background: transparent;
+      color: var(--retro-ink);
+      opacity: 0.6;
+    }
+    .retro-tab:hover {
+      opacity: 1;
+    }
+    .retro-tab.active {
+      background: var(--retro-teal);
+      color: var(--retro-paper);
+      opacity: 1;
+    }
+
+    /* Zone d'erreur */
+    .feedback-error {
+      background: rgba(228, 99, 46, 0.1);
+      border-left: 4px solid var(--retro-orange);
+      border-radius: 0 8px 8px 0;
+      padding: 0.75rem 1rem;
+      color: var(--retro-ink);
+    }
+
+    /* Séparateur */
+    .retro-separator {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 16px 0;
+      color: var(--retro-teal);
+    }
+    .retro-separator::before,
+    .retro-separator::after {
+      content: '';
+      flex: 1;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--retro-teal) 20%, var(--retro-teal) 80%, transparent);
+    }
+
+    /* Liste des prêts */
+    .pret-item {
+      padding: 12px;
+      border-bottom: 1px solid rgba(18, 118, 118, 0.2);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .pret-item:last-child {
+      border-bottom: none;
+    }
+
+    /* Historique */
+    .historique-item {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(18, 118, 118, 0.15);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.9rem;
+    }
+    .historique-item:last-child {
+      border-bottom: none;
+    }
+
+    /* Compteur principal */
+    .compteur-box {
+      background: linear-gradient(135deg, var(--retro-teal) 0%, #0e5858 100%);
+      color: var(--retro-paper);
+      border-radius: 12px;
+      padding: 12px 20px;
+      text-align: center;
+    }
+
+    /* Astuce */
+    .astuce-box {
+      background: rgba(227, 165, 53, 0.15);
+      border-left: 4px solid var(--retro-jaune);
+      border-radius: 0 8px 8px 0;
+      padding: 0.6rem 1rem;
+      font-size: 0.9rem;
+      color: var(--retro-ink);
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(18, 118, 118, 0.1);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--retro-teal);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--retro-orange);
+    }
+  </style>
 </head>
 <body>
   <div id="root"></div>
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
 
-    // ⚠️ REMPLACE CETTE URL par celle de ton Google Apps Script déployé
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx8JU_XMrAiTtZ3n41_Clns_Ru_tXStDqm6PfxZlbMHoe0KdfUFTMK8tMoKGUqnYMKk/exec";
-    
     const STORAGE_KEY = "prets-pc-data";
+
+    // SVG Flourish Art Nouveau
+    const CornerFlourish = () => (
+      <svg viewBox="0 0 50 50" fill="currentColor">
+        <path d="M5 5 Q15 5, 15 15 Q15 25, 5 25 M5 5 Q5 15, 15 15 Q25 15, 25 5" 
+              fill="none" stroke="currentColor" strokeWidth="2"/>
+        <circle cx="8" cy="8" r="3"/>
+        <path d="M20 3 Q30 8, 25 20 Q35 15, 45 8" fill="none" stroke="currentColor" strokeWidth="1.5"/>
+        <circle cx="25" cy="20" r="2"/>
+      </svg>
+    );
 
     function GestionPretPC() {
       const [pretsActifs, setPretsActifs] = useState([]);
@@ -42,7 +305,6 @@
         }
       }, [loading]);
 
-      // Charger depuis Google Sheets (avec fallback localStorage)
       const loadData = async () => {
         try {
           const url = new URL(GOOGLE_SCRIPT_URL);
@@ -54,11 +316,9 @@
           setPretsActifs(data.pretsActifs || []);
           setHistorique(data.historique || []);
           setLastSync(new Date());
-          // Backup local
           localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
         } catch (e) {
           console.warn("Erreur chargement distant, fallback local:", e);
-          // Fallback localStorage
           try {
             const stored = localStorage.getItem(STORAGE_KEY);
             if (stored) {
@@ -72,14 +332,9 @@
         setLoading(false);
       };
 
-      // Sauvegarder vers Google Sheets + localStorage
       const saveData = async (newPrets, newHisto) => {
         const data = { pretsActifs: newPrets, historique: newHisto };
-        
-        // Toujours sauvegarder en local d'abord
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-        
-        // Puis sync avec Google
         setSyncing(true);
         try {
           const url = new URL(GOOGLE_SCRIPT_URL);
@@ -92,7 +347,6 @@
           setLastSync(new Date());
         } catch (e) {
           console.warn("Erreur sync:", e);
-          // Pas grave, on a le local
         }
         setSyncing(false);
       };
@@ -104,7 +358,7 @@
         const n = parseInt(nbPC, 10);
 
         if (!s || s.length < 2 || s.length > 4) {
-          setError("Sigle: 2-4 lettres");
+          setError("Sigle : 2 à 4 lettres requises");
           return;
         }
         if (!n || n < 1) {
@@ -221,47 +475,71 @@
       };
 
       if (loading) {
-        return <div className="min-h-screen bg-gray-100 flex items-center justify-center"><p>Chargement...</p></div>;
+        return (
+          <div className="page-frame flex items-center justify-center" style={{minHeight: 'calc(100vh - 24px)'}}>
+            <div className="corner-flourish top-left"><CornerFlourish /></div>
+            <div className="corner-flourish top-right"><CornerFlourish /></div>
+            <div className="corner-flourish bottom-left"><CornerFlourish /></div>
+            <div className="corner-flourish bottom-right"><CornerFlourish /></div>
+            <p className="font-display text-xl" style={{color: 'var(--retro-teal)'}}>Chargement...</p>
+          </div>
+        );
       }
 
       return (
-        <div className="min-h-screen bg-gray-100 p-4">
-          <div className="max-w-2xl mx-auto">
+        <div className="page-frame">
+          {/* Motifs Art Nouveau aux coins */}
+          <div className="corner-flourish top-left"><CornerFlourish /></div>
+          <div className="corner-flourish top-right"><CornerFlourish /></div>
+          <div className="corner-flourish bottom-left"><CornerFlourish /></div>
+          <div className="corner-flourish bottom-right"><CornerFlourish /></div>
+
+          <div style={{maxWidth: '640px', margin: '0 auto'}}>
             
             {/* Header */}
-            <div className="bg-white rounded-lg shadow p-4 mb-4">
-              <div className="flex justify-between items-center">
+            <div className="retro-card mb-4">
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px'}}>
                 <div>
-                  <h1 className="text-xl font-bold text-gray-800">Prêt PC</h1>
-                  <div className="text-xs text-gray-400 mt-1">
+                  <h1 className="font-display text-2xl" style={{color: 'var(--retro-teal)', marginBottom: '4px'}}>
+                    Prêt PC
+                  </h1>
+                  <div style={{fontSize: '0.75rem', color: 'var(--retro-ink)', opacity: 0.6}}>
                     {syncing ? (
-                      <span className="text-blue-500">⟳ Synchronisation...</span>
+                      <span style={{color: 'var(--retro-orange)'}}>⟳ Synchronisation...</span>
                     ) : lastSync ? (
-                      <span>✓ Sync {lastSync.toLocaleTimeString("fr-BE", {hour: "2-digit", minute: "2-digit"})}</span>
+                      <span style={{color: 'var(--retro-teal)'}}>✓ Sync {lastSync.toLocaleTimeString("fr-BE", {hour: "2-digit", minute: "2-digit"})}</span>
                     ) : (
-                      <span className="text-orange-500">Mode hors-ligne</span>
+                      <span style={{color: 'var(--retro-orange)'}}>Mode hors-ligne</span>
                     )}
                   </div>
                 </div>
-                <div className="text-right">
-                  <span className="text-2xl font-bold text-blue-600">{totalPC}</span>
-                  <span className="text-gray-600 ml-1">PC en circulation</span>
+                <div className="compteur-box">
+                  <span className="font-display text-3xl">{totalPC}</span>
+                  <span style={{fontSize: '0.85rem', marginLeft: '8px'}}>PC en circulation</span>
                 </div>
               </div>
-              <p className="text-amber-600 text-sm mt-2">💡 N'oublie pas les chargeurs !</p>
+              
+              <div className="astuce-box mt-3">
+                💡 N'oublie pas les chargeurs !
+              </div>
             </div>
 
             {/* Erreur */}
             {error && (
-              <div className="bg-red-100 border border-red-300 text-red-700 px-4 py-2 rounded mb-4 flex justify-between">
+              <div className="feedback-error mb-4" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                 <span>{error}</span>
-                <button onClick={() => setError(null)} className="font-bold">×</button>
+                <button 
+                  onClick={() => setError(null)} 
+                  style={{background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--retro-orange)'}}
+                >
+                  ×
+                </button>
               </div>
             )}
 
             {/* Saisie prêt */}
-            <div className="bg-white rounded-lg shadow p-4 mb-4">
-              <div className="flex gap-2">
+            <div className="retro-card mb-4">
+              <div style={{display: 'flex', gap: '12px', flexWrap: 'wrap'}}>
                 <input
                   ref={sigleRef}
                   type="text"
@@ -270,7 +548,8 @@
                   onChange={(e) => setSigle(e.target.value.toUpperCase())}
                   onKeyDown={(e) => handleKeyDown(e, ajouterPret)}
                   maxLength={4}
-                  className="flex-1 border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="retro-input"
+                  style={{flex: '1 1 100px', minWidth: '80px'}}
                 />
                 <input
                   type="number"
@@ -279,57 +558,71 @@
                   onChange={(e) => setNbPC(e.target.value)}
                   onKeyDown={(e) => handleKeyDown(e, ajouterPret)}
                   min="1"
-                  className="w-20 border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="retro-input"
+                  style={{width: '70px'}}
                 />
                 <button
                   type="button"
                   onClick={ajouterPret}
-                  className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 font-medium"
+                  className="retro-btn-pill"
                 >
-                  Prêter
+                  <span className="retro-btn-pill-text">PRÊTER</span>
+                  <span className="retro-btn-pill-icon">»</span>
                 </button>
               </div>
             </div>
 
             {/* Onglets */}
-            <div className="flex mb-4 bg-white rounded-lg shadow overflow-hidden">
+            <div className="retro-card mb-4" style={{padding: 0, display: 'flex', overflow: 'hidden'}}>
               <button
                 type="button"
                 onClick={() => setOnglet("actif")}
-                className={`flex-1 py-2 font-medium ${onglet === "actif" ? "bg-blue-600 text-white" : "text-gray-600 hover:bg-gray-100"}`}
+                className={`retro-tab ${onglet === "actif" ? "active" : ""}`}
+                style={{borderRadius: '21px 5px 0 0'}}
               >
-                En cours ({pretsActifs.length})
+                EN COURS ({pretsActifs.length})
               </button>
               <button
                 type="button"
                 onClick={() => setOnglet("historique")}
-                className={`flex-1 py-2 font-medium ${onglet === "historique" ? "bg-blue-600 text-white" : "text-gray-600 hover:bg-gray-100"}`}
+                className={`retro-tab ${onglet === "historique" ? "active" : ""}`}
+                style={{borderRadius: '5px 21px 0 0'}}
               >
-                Historique
+                HISTORIQUE
               </button>
             </div>
 
             {/* Contenu */}
-            <div className="bg-white rounded-lg shadow">
+            <div className="retro-card" style={{padding: 0}}>
               {onglet === "actif" ? (
-                <div className="divide-y">
+                <div>
                   {pretsActifs.length === 0 ? (
-                    <p className="p-4 text-gray-500 text-center">Aucun prêt en cours</p>
+                    <p style={{padding: '24px', textAlign: 'center', color: 'var(--retro-ink)', opacity: 0.5}}>
+                      Aucun prêt en cours
+                    </p>
                   ) : (
                     pretsActifs.map((pret) => {
                       const restant = pret.nbPC - pret.retournes;
                       const showPartiel = retours[pret.id] === "partiel";
                       return (
-                        <div key={pret.id} className="p-3 flex items-center gap-3 flex-wrap">
-                          <span className="font-bold text-gray-800 w-12">{pret.sigle}</span>
-                          <span className="text-blue-600 font-medium">
-                            {restant} PC
-                            {pret.retournes > 0 && <span className="text-gray-400 text-sm"> /{pret.nbPC}</span>}
+                        <div key={pret.id} className="pret-item">
+                          <span className="font-display" style={{color: 'var(--retro-ink)', fontSize: '1.1rem', width: '50px'}}>
+                            {pret.sigle}
                           </span>
-                          <span className="text-gray-400 text-sm">{pret.heure}</span>
-                          <div className="flex-1" />
+                          <span style={{color: 'var(--retro-orange)', fontWeight: 600}}>
+                            {restant} PC
+                            {pret.retournes > 0 && (
+                              <span style={{color: 'var(--retro-ink)', opacity: 0.4, fontSize: '0.85rem', marginLeft: '4px'}}>
+                                /{pret.nbPC}
+                              </span>
+                            )}
+                          </span>
+                          <span style={{color: 'var(--retro-ink)', opacity: 0.4, fontSize: '0.85rem'}}>
+                            {pret.heure}
+                          </span>
+                          <div style={{flex: 1}} />
                           {showPartiel ? (
-                            <div className="flex gap-2 items-center">
+                            <div style={{display: 'flex', gap: '8px', alignItems: 'center'}}>
                               <input
                                 type="number"
                                 placeholder="Nb"
@@ -342,29 +635,30 @@
                                 }}
                                 min="1"
                                 max={restant - 1}
-                                className="w-16 border border-gray-300 rounded px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                className="retro-input"
+                                style={{width: '60px', padding: '0.4rem 0.5rem', textAlign: 'center'}}
                               />
                               <button
                                 type="button"
                                 onClick={() => faireRetourPartiel(pret.id)}
-                                className="bg-orange-500 text-white px-3 py-1 rounded hover:bg-orange-600 text-sm"
+                                className="retro-btn-partiel"
                               >
                                 OK
                               </button>
                               <button
                                 type="button"
                                 onClick={() => setRetours({ ...retours, [pret.id]: "" })}
-                                className="text-gray-400 hover:text-gray-600 text-sm"
+                                style={{background: 'none', border: 'none', cursor: 'pointer', color: 'var(--retro-ink)', opacity: 0.4, fontSize: '1rem'}}
                               >
                                 ✕
                               </button>
                             </div>
                           ) : (
-                            <div className="flex gap-2">
+                            <div style={{display: 'flex', gap: '8px'}}>
                               <button
                                 type="button"
                                 onClick={() => faireRetourComplet(pret.id)}
-                                className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 text-sm"
+                                className="retro-btn-action"
                               >
                                 Tout ({restant})
                               </button>
@@ -372,7 +666,7 @@
                                 <button
                                   type="button"
                                   onClick={() => setRetours({ ...retours, [pret.id]: "partiel" })}
-                                  className="bg-orange-500 text-white px-3 py-1 rounded hover:bg-orange-600 text-sm"
+                                  className="retro-btn-partiel"
                                 >
                                   Partiel
                                 </button>
@@ -386,23 +680,37 @@
                 </div>
               ) : (
                 <div>
-                  <div className="p-3 border-b flex justify-between items-center">
-                    <span className="text-gray-600 text-sm">{historique.length} événements</span>
+                  <div style={{padding: '12px 16px', borderBottom: '2px solid rgba(18, 118, 118, 0.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                    <span style={{color: 'var(--retro-ink)', opacity: 0.6, fontSize: '0.85rem'}}>
+                      {historique.length} événements
+                    </span>
                     {historique.length > 0 && (
-                      <button type="button" onClick={exportCSV} className="text-blue-600 text-sm hover:underline">
-                        Exporter CSV
+                      <button 
+                        type="button" 
+                        onClick={exportCSV} 
+                        style={{background: 'none', border: 'none', cursor: 'pointer', color: 'var(--retro-teal)', fontSize: '0.85rem', fontWeight: 500}}
+                      >
+                        Exporter CSV ↓
                       </button>
                     )}
                   </div>
-                  <div className="divide-y max-h-96 overflow-y-auto">
+                  <div style={{maxHeight: '384px', overflowY: 'auto'}}>
                     {historique.length === 0 ? (
-                      <p className="p-4 text-gray-500 text-center">Aucun historique</p>
+                      <p style={{padding: '24px', textAlign: 'center', color: 'var(--retro-ink)', opacity: 0.5}}>
+                        Aucun historique
+                      </p>
                     ) : (
                       historique.map((h) => (
-                        <div key={h.id} className="p-3 flex items-center gap-3 text-sm">
-                          <span className="text-gray-400 w-32">{formatDT(h.timestamp)}</span>
-                          <span className="font-bold w-12">{h.sigle}</span>
-                          <span className={h.type === "pret" ? "text-blue-600" : "text-green-600"}>{h.action}</span>
+                        <div key={h.id} className="historique-item">
+                          <span style={{color: 'var(--retro-ink)', opacity: 0.5, width: '130px', flexShrink: 0}}>
+                            {formatDT(h.timestamp)}
+                          </span>
+                          <span className="font-display" style={{width: '50px', color: 'var(--retro-ink)'}}>
+                            {h.sigle}
+                          </span>
+                          <span style={{color: h.type === "pret" ? 'var(--retro-orange)' : 'var(--retro-teal)'}}>
+                            {h.action}
+                          </span>
                         </div>
                       ))
                     )}
@@ -411,12 +719,17 @@
               )}
             </div>
 
-            <p className="text-center text-gray-400 text-xs mt-4">
+            {/* Footer */}
+            <div className="retro-separator mt-4">
+              <span style={{opacity: 0.7}}>❧</span>
+            </div>
+            
+            <p style={{textAlign: 'center', color: 'var(--retro-ink)', opacity: 0.4, fontSize: '0.75rem'}}>
               Synchronisé avec Google Sheets
               <button 
                 type="button" 
                 onClick={loadData} 
-                className="ml-2 text-blue-500 hover:underline"
+                style={{marginLeft: '8px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--retro-teal)', textDecoration: 'underline'}}
               >
                 Rafraîchir
               </button>
