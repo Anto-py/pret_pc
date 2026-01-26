@@ -342,17 +342,38 @@
           const data = JSON.parse(text);
           if (data.error) throw new Error(data.error);
 
+          // Fonction pour parser un nombre qui peut être "00:00" (Google Sheets bug)
+          const parseNum = (val) => {
+            if (val === null || val === undefined) return 0;
+            if (typeof val === "number") return val;
+            const s = String(val);
+            if (s.includes(":")) return 0; // "00:00" devient 0
+            return parseInt(s, 10) || 0;
+          };
+
+          // Fonction pour nettoyer l'heure
+          const parseHeure = (val) => {
+            if (!val) return "?";
+            const s = String(val);
+            if (s.includes("T")) {
+              // C'est une date ISO, extraire l'heure
+              const match = s.match(/T(\d{2}:\d{2})/);
+              return match ? match[1] : "?";
+            }
+            if (s.includes(":") && s.length <= 5) return s; // Déjà une heure
+            return "?";
+          };
+
           // Migration et filtrage des données invalides
           const pretsNormalises = (data.pretsActifs || [])
             .map(p => ({
               ...p,
-              nb: parseInt(p.nb ?? p.nbPC ?? 0, 10),
+              nb: parseNum(p.nb ?? p.nbPC),
               type: p.type || "pc",
-              retournes: parseInt(p.retournes ?? 0, 10),
-              // Nettoyer l'heure si c'est une date ISO bizarre
-              heure: String(p.heure || "").includes("1899") ? "?" : String(p.heure || "?"),
+              retournes: parseNum(p.retournes),
+              heure: parseHeure(p.heure),
             }))
-            .filter(p => !isNaN(p.nb) && p.nb > 0); // Filtrer les prêts invalides
+            .filter(p => p.nb > 0); // Filtrer les prêts invalides
 
           // Migration historique: type -> actionType
           const histoNormalise = (data.historique || []).map(h => ({
@@ -370,16 +391,34 @@
             const stored = localStorage.getItem(STORAGE_KEY);
             if (stored) {
               const data = JSON.parse(stored);
+              // Fonctions de parsing (même que ci-dessus)
+              const parseNum = (val) => {
+                if (val === null || val === undefined) return 0;
+                if (typeof val === "number") return val;
+                const s = String(val);
+                if (s.includes(":")) return 0;
+                return parseInt(s, 10) || 0;
+              };
+              const parseHeure = (val) => {
+                if (!val) return "?";
+                const s = String(val);
+                if (s.includes("T")) {
+                  const match = s.match(/T(\d{2}:\d{2})/);
+                  return match ? match[1] : "?";
+                }
+                if (s.includes(":") && s.length <= 5) return s;
+                return "?";
+              };
               // Même migration et filtrage pour les données locales
               const pretsNormalises = (data.pretsActifs || [])
                 .map(p => ({
                   ...p,
-                  nb: parseInt(p.nb ?? p.nbPC ?? 0, 10),
+                  nb: parseNum(p.nb ?? p.nbPC),
                   type: p.type || "pc",
-                  retournes: parseInt(p.retournes ?? 0, 10),
-                  heure: String(p.heure || "").includes("1899") ? "?" : String(p.heure || "?"),
+                  retournes: parseNum(p.retournes),
+                  heure: parseHeure(p.heure),
                 }))
-                .filter(p => !isNaN(p.nb) && p.nb > 0);
+                .filter(p => p.nb > 0);
               const histoNormalise = (data.historique || []).map(h => ({
                 ...h,
                 actionType: h.actionType || h.type || "pret",
