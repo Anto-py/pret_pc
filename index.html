@@ -341,18 +341,44 @@
           const text = await response.text();
           const data = JSON.parse(text);
           if (data.error) throw new Error(data.error);
-          setPretsActifs(data.pretsActifs || []);
-          setHistorique(data.historique || []);
+
+          // Migration: compatibilité avec l'ancien format (nbPC -> nb, type manquant -> "pc")
+          const pretsNormalises = (data.pretsActifs || []).map(p => ({
+            ...p,
+            nb: p.nb ?? p.nbPC ?? 0,
+            type: p.type || "pc",
+            retournes: p.retournes ?? 0,
+          }));
+
+          // Migration historique: type -> actionType
+          const histoNormalise = (data.historique || []).map(h => ({
+            ...h,
+            actionType: h.actionType || h.type || "pret",
+          }));
+
+          setPretsActifs(pretsNormalises);
+          setHistorique(histoNormalise);
           setLastSync(new Date());
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({ pretsActifs: pretsNormalises, historique: histoNormalise }));
         } catch (e) {
           console.warn("Erreur chargement distant, fallback local:", e);
           try {
             const stored = localStorage.getItem(STORAGE_KEY);
             if (stored) {
               const data = JSON.parse(stored);
-              setPretsActifs(data.pretsActifs || []);
-              setHistorique(data.historique || []);
+              // Même migration pour les données locales
+              const pretsNormalises = (data.pretsActifs || []).map(p => ({
+                ...p,
+                nb: p.nb ?? p.nbPC ?? 0,
+                type: p.type || "pc",
+                retournes: p.retournes ?? 0,
+              }));
+              const histoNormalise = (data.historique || []).map(h => ({
+                ...h,
+                actionType: h.actionType || h.type || "pret",
+              }));
+              setPretsActifs(pretsNormalises);
+              setHistorique(histoNormalise);
             }
           } catch (e2) {}
           setError("Mode hors-ligne (données locales)");
