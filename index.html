@@ -288,7 +288,7 @@
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
 
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxXrOAiY03Av-UI0EntjcRjsX9LJ8vsIPVRjMeHB8eUTLksL58uBmrzzR2_jizC_VoCOg/exec";
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwJgmppd9a5oGC29HoeeBOkkhSi2zUHok13j4hKFEk8huSXCN_VO0DnKrmwhDM86AfyGw/exec";
     const STORAGE_KEY = "prets-data";
 
     // Configuration des types d'équipement (facile à modifier)
@@ -350,13 +350,38 @@
           const data = JSON.parse(text);
           if (data.error) throw new Error(data.error);
 
-          // Migration: compatibilité avec l'ancien format (nbPC -> nb, type manquant -> "pc")
-          const pretsNormalises = (data.pretsActifs || []).map(p => ({
-            ...p,
-            nb: p.nb ?? p.nbPC ?? 0,
-            type: p.type || "pc",
-            retournes: p.retournes ?? 0,
-          }));
+          // Fonction pour parser un nombre qui peut être "00:00" (Google Sheets bug)
+          const parseNum = (val) => {
+            if (val === null || val === undefined) return 0;
+            if (typeof val === "number") return val;
+            const s = String(val);
+            if (s.includes(":")) return 0; // "00:00" devient 0
+            return parseInt(s, 10) || 0;
+          };
+
+          // Fonction pour nettoyer l'heure
+          const parseHeure = (val) => {
+            if (!val) return "?";
+            const s = String(val);
+            if (s.includes("T")) {
+              // C'est une date ISO, extraire l'heure
+              const match = s.match(/T(\d{2}:\d{2})/);
+              return match ? match[1] : "?";
+            }
+            if (s.includes(":") && s.length <= 5) return s; // Déjà une heure
+            return "?";
+          };
+
+          // Migration et filtrage des données invalides
+          const pretsNormalises = (data.pretsActifs || [])
+            .map(p => ({
+              ...p,
+              nb: parseNum(p.nb ?? p.nbPC),
+              type: p.type || "pc",
+              retournes: parseNum(p.retournes),
+              heure: parseHeure(p.heure),
+            }))
+            .filter(p => p.nb > 0); // Filtrer les prêts invalides
 
           // Migration historique: type -> actionType
           const histoNormalise = (data.historique || []).map(h => ({
@@ -374,13 +399,34 @@
             const stored = localStorage.getItem(STORAGE_KEY);
             if (stored) {
               const data = JSON.parse(stored);
-              // Même migration pour les données locales
-              const pretsNormalises = (data.pretsActifs || []).map(p => ({
-                ...p,
-                nb: p.nb ?? p.nbPC ?? 0,
-                type: p.type || "pc",
-                retournes: p.retournes ?? 0,
-              }));
+              // Fonctions de parsing (même que ci-dessus)
+              const parseNum = (val) => {
+                if (val === null || val === undefined) return 0;
+                if (typeof val === "number") return val;
+                const s = String(val);
+                if (s.includes(":")) return 0;
+                return parseInt(s, 10) || 0;
+              };
+              const parseHeure = (val) => {
+                if (!val) return "?";
+                const s = String(val);
+                if (s.includes("T")) {
+                  const match = s.match(/T(\d{2}:\d{2})/);
+                  return match ? match[1] : "?";
+                }
+                if (s.includes(":") && s.length <= 5) return s;
+                return "?";
+              };
+              // Même migration et filtrage pour les données locales
+              const pretsNormalises = (data.pretsActifs || [])
+                .map(p => ({
+                  ...p,
+                  nb: parseNum(p.nb ?? p.nbPC),
+                  type: p.type || "pc",
+                  retournes: parseNum(p.retournes),
+                  heure: parseHeure(p.heure),
+                }))
+                .filter(p => p.nb > 0);
               const histoNormalise = (data.historique || []).map(h => ({
                 ...h,
                 actionType: h.actionType || h.type || "pret",
@@ -399,19 +445,38 @@
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
         setSyncing(true);
         try {
-          // Utiliser POST avec FormData pour éviter les problèmes d'encodage URL
-          const formData = new FormData();
-          formData.append("action", "save");
-          formData.append("data", JSON.stringify(data));
+          // Créer un iframe caché pour soumettre le formulaire (contourne CORS)
+          const iframe = document.createElement("iframe");
+          iframe.name = "saveFrame" + Date.now();
+          iframe.style.display = "none";
+          document.body.appendChild(iframe);
 
-          const response = await fetch(GOOGLE_SCRIPT_URL, {
-            method: "POST",
-            body: formData,
-          });
-          const text = await response.text();
-          const result = JSON.parse(text);
-          if (result.error) throw new Error(result.error);
-          setLastSync(new Date());
+          const form = document.createElement("form");
+          form.method = "POST";
+          form.action = GOOGLE_SCRIPT_URL;
+          form.target = iframe.name;
+
+          const actionInput = document.createElement("input");
+          actionInput.type = "hidden";
+          actionInput.name = "action";
+          actionInput.value = "save";
+          form.appendChild(actionInput);
+
+          const dataInput = document.createElement("input");
+          dataInput.type = "hidden";
+          dataInput.name = "data";
+          dataInput.value = JSON.stringify(data);
+          form.appendChild(dataInput);
+
+          document.body.appendChild(form);
+          form.submit();
+
+          // Nettoyer après 5 secondes
+          setTimeout(() => {
+            document.body.removeChild(form);
+            document.body.removeChild(iframe);
+            setLastSync(new Date());
+          }, 5000);
         } catch (e) {
           console.warn("Erreur sync:", e);
         }
