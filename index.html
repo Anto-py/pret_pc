@@ -398,15 +398,38 @@
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
         setSyncing(true);
         try {
-          // Construire l'URL avec les données encodées
-          const url = GOOGLE_SCRIPT_URL +
-            "?action=save&data=" + encodeURIComponent(JSON.stringify(data));
+          // Créer un iframe caché pour soumettre le formulaire (contourne CORS)
+          const iframe = document.createElement("iframe");
+          iframe.name = "saveFrame" + Date.now();
+          iframe.style.display = "none";
+          document.body.appendChild(iframe);
 
-          // Utiliser une image pour contourner CORS (fire-and-forget)
-          const img = new Image();
-          img.onload = () => setLastSync(new Date());
-          img.onerror = () => setLastSync(new Date()); // Google redirige, donc onerror est normal
-          img.src = url;
+          const form = document.createElement("form");
+          form.method = "POST";
+          form.action = GOOGLE_SCRIPT_URL;
+          form.target = iframe.name;
+
+          const actionInput = document.createElement("input");
+          actionInput.type = "hidden";
+          actionInput.name = "action";
+          actionInput.value = "save";
+          form.appendChild(actionInput);
+
+          const dataInput = document.createElement("input");
+          dataInput.type = "hidden";
+          dataInput.name = "data";
+          dataInput.value = JSON.stringify(data);
+          form.appendChild(dataInput);
+
+          document.body.appendChild(form);
+          form.submit();
+
+          // Nettoyer après 5 secondes
+          setTimeout(() => {
+            document.body.removeChild(form);
+            document.body.removeChild(iframe);
+            setLastSync(new Date());
+          }, 5000);
         } catch (e) {
           console.warn("Erreur sync:", e);
         }
