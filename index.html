@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Prêt PC — RETROFuturisme</title>
+  <title>Prêt — RETROFuturisme</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -289,7 +289,14 @@
     const { useState, useEffect, useRef } = React;
 
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx8JU_XMrAiTtZ3n41_Clns_Ru_tXStDqm6PfxZlbMHoe0KdfUFTMK8tMoKGUqnYMKk/exec";
-    const STORAGE_KEY = "prets-pc-data";
+    const STORAGE_KEY = "prets-data";
+
+    // Configuration des types d'équipement (facile à modifier)
+    const TYPES_EQUIPEMENT = [
+      { id: "pc", label: "PC", pluriel: "PC" },
+      { id: "hdmi", label: "HDMI", pluriel: "HDMI" },
+      { id: "calculatrice", label: "Calculatrice", pluriel: "calculatrices" },
+    ];
 
     // SVG Flourish Art Nouveau
     const CornerFlourish = () => (
@@ -306,7 +313,8 @@
       const [pretsActifs, setPretsActifs] = useState([]);
       const [historique, setHistorique] = useState([]);
       const [sigle, setSigle] = useState("");
-      const [nbPC, setNbPC] = useState("");
+      const [typeEquipement, setTypeEquipement] = useState(TYPES_EQUIPEMENT[0].id);
+      const [nbEquipement, setNbEquipement] = useState("");
       const [retours, setRetours] = useState({});
       const [onglet, setOnglet] = useState("actif");
       const [loading, setLoading] = useState(true);
@@ -371,28 +379,42 @@
         setSyncing(false);
       };
 
-      const totalPC = pretsActifs.reduce((s, p) => s + (p.nbPC - p.retournes), 0);
+      // Calcul des totaux par type d'équipement
+      const totauxParType = TYPES_EQUIPEMENT.map(type => {
+        const total = pretsActifs
+          .filter(p => p.type === type.id)
+          .reduce((s, p) => s + (p.nb - p.retournes), 0);
+        return { ...type, total };
+      }).filter(t => t.total > 0);
+
+      const getTypeLabel = (typeId, nb) => {
+        const type = TYPES_EQUIPEMENT.find(t => t.id === typeId);
+        if (!type) return typeId;
+        return nb > 1 ? type.pluriel : type.label;
+      };
 
       const ajouterPret = () => {
         const s = sigle.trim().toUpperCase();
-        const n = parseInt(nbPC, 10);
+        const n = parseInt(nbEquipement, 10);
 
         if (!s || s.length < 2 || s.length > 4) {
           setError("Sigle : 2 à 4 lettres requises");
           return;
         }
         if (!n || n < 1) {
-          setError("Nombre de PC invalide");
+          setError("Nombre invalide");
           return;
         }
 
         setError(null);
         const now = new Date();
-        
+        const labelType = getTypeLabel(typeEquipement, n);
+
         const pret = {
           id: Date.now(),
           sigle: s,
-          nbPC: n,
+          type: typeEquipement,
+          nb: n,
           retournes: 0,
           heure: now.toLocaleTimeString("fr-BE", { hour: "2-digit", minute: "2-digit" }),
           timestamp: now.toISOString(),
@@ -402,8 +424,8 @@
           id: Date.now(),
           timestamp: now.toISOString(),
           sigle: s,
-          action: `prêt de ${n} PC`,
-          type: "pret",
+          action: `prêt de ${n} ${labelType}`,
+          actionType: "pret",
         };
 
         const newPrets = [pret, ...pretsActifs];
@@ -413,7 +435,7 @@
         setHistorique(newHisto);
         saveData(newPrets, newHisto);
         setSigle("");
-        setNbPC("");
+        setNbEquipement("");
         sigleRef.current?.focus();
       };
 
@@ -421,49 +443,51 @@
         const pret = pretsActifs.find((p) => p.id === pretId);
         if (!pret) return;
 
-        const restant = pret.nbPC - pret.retournes;
+        const restant = pret.nb - pret.retournes;
+        const labelType = getTypeLabel(pret.type, restant);
         const now = new Date();
 
         const histo = {
           id: Date.now(),
           timestamp: now.toISOString(),
           sigle: pret.sigle,
-          action: `retour de ${restant} PC`,
-          type: "retour",
+          action: `retour de ${restant} ${labelType}`,
+          actionType: "retour",
         };
 
         const newPrets = pretsActifs.filter((p) => p.id !== pretId);
         const newHisto = [histo, ...historique];
-        
+
         setPretsActifs(newPrets);
         setHistorique(newHisto);
         saveData(newPrets, newHisto);
       };
 
       const faireRetourPartiel = (pretId) => {
-        const nb = parseInt(retours[pretId + "_nb"], 10);
+        const nbRetour = parseInt(retours[pretId + "_nb"], 10);
         const pret = pretsActifs.find((p) => p.id === pretId);
         if (!pret) return;
 
-        const restant = pret.nbPC - pret.retournes;
-        if (!nb || nb < 1 || nb >= restant) {
+        const restant = pret.nb - pret.retournes;
+        if (!nbRetour || nbRetour < 1 || nbRetour >= restant) {
           setError(`Nombre invalide (1 à ${restant - 1})`);
           return;
         }
 
         setError(null);
+        const labelType = getTypeLabel(pret.type, nbRetour);
         const now = new Date();
 
         const histo = {
           id: Date.now(),
           timestamp: now.toISOString(),
           sigle: pret.sigle,
-          action: `retour de ${nb} PC`,
-          type: "retour",
+          action: `retour de ${nbRetour} ${labelType}`,
+          actionType: "retour",
         };
 
         const newPrets = pretsActifs.map((p) =>
-          p.id === pretId ? { ...p, retournes: p.retournes + nb } : p
+          p.id === pretId ? { ...p, retournes: p.retournes + nbRetour } : p
         );
 
         const newHisto = [histo, ...historique];
@@ -521,7 +545,7 @@
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px'}}>
                 <div>
                   <h1 className="font-display text-2xl" style={{color: 'var(--retro-teal)', marginBottom: '4px'}}>
-                    Prêt PC
+                    Prêt
                   </h1>
                   <div style={{fontSize: '0.75rem', color: 'var(--retro-ink)', opacity: 0.6}}>
                     {syncing ? (
@@ -533,9 +557,17 @@
                     )}
                   </div>
                 </div>
-                <div className="compteur-box">
-                  <span className="font-display text-3xl">{totalPC}</span>
-                  <span style={{fontSize: '0.85rem', marginLeft: '8px'}}>PC en circulation</span>
+                <div className="compteur-box" style={{display: 'flex', flexDirection: 'column', gap: '4px'}}>
+                  {totauxParType.length === 0 ? (
+                    <span style={{fontSize: '0.85rem', opacity: 0.7}}>Aucun prêt</span>
+                  ) : (
+                    totauxParType.map(t => (
+                      <div key={t.id} style={{display: 'flex', alignItems: 'baseline', gap: '6px'}}>
+                        <span className="font-display text-xl">{t.total}</span>
+                        <span style={{fontSize: '0.8rem'}}>{t.total > 1 ? t.pluriel : t.label}</span>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
               
@@ -559,7 +591,7 @@
 
             {/* Saisie prêt */}
             <div className="retro-card mb-3">
-              <div style={{display: 'flex', gap: '12px', flexWrap: 'wrap'}}>
+              <div style={{display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center'}}>
                 <input
                   ref={sigleRef}
                   type="text"
@@ -569,13 +601,23 @@
                   onKeyDown={(e) => handleKeyDown(e, ajouterPret)}
                   maxLength={4}
                   className="retro-input"
-                  style={{flex: '1 1 100px', minWidth: '80px'}}
+                  style={{flex: '1 1 80px', minWidth: '80px'}}
                 />
+                <select
+                  value={typeEquipement}
+                  onChange={(e) => setTypeEquipement(e.target.value)}
+                  className="retro-input"
+                  style={{minWidth: '120px'}}
+                >
+                  {TYPES_EQUIPEMENT.map(type => (
+                    <option key={type.id} value={type.id}>{type.label}</option>
+                  ))}
+                </select>
                 <input
                   type="number"
                   placeholder="Nb"
-                  value={nbPC}
-                  onChange={(e) => setNbPC(e.target.value)}
+                  value={nbEquipement}
+                  onChange={(e) => setNbEquipement(e.target.value)}
                   onKeyDown={(e) => handleKeyDown(e, ajouterPret)}
                   min="1"
                   className="retro-input"
@@ -622,18 +664,19 @@
                     </p>
                   ) : (
                     pretsActifs.map((pret) => {
-                      const restant = pret.nbPC - pret.retournes;
+                      const restant = pret.nb - pret.retournes;
                       const showPartiel = retours[pret.id] === "partiel";
+                      const labelType = getTypeLabel(pret.type, restant);
                       return (
                         <div key={pret.id} className="pret-item">
                           <span className="font-display" style={{color: 'var(--retro-ink)', fontSize: '1.1rem', width: '50px'}}>
                             {pret.sigle}
                           </span>
                           <span style={{color: 'var(--retro-orange)', fontWeight: 600}}>
-                            {restant} PC
+                            {restant} {labelType}
                             {pret.retournes > 0 && (
                               <span style={{color: 'var(--retro-ink)', opacity: 0.4, fontSize: '0.85rem', marginLeft: '4px'}}>
-                                /{pret.nbPC}
+                                /{pret.nb}
                               </span>
                             )}
                           </span>
@@ -728,7 +771,7 @@
                           <span className="font-display" style={{width: '50px', color: 'var(--retro-ink)'}}>
                             {h.sigle}
                           </span>
-                          <span style={{color: h.type === "pret" ? 'var(--retro-orange)' : 'var(--retro-teal)'}}>
+                          <span style={{color: h.actionType === "pret" ? 'var(--retro-orange)' : 'var(--retro-teal)'}}>
                             {h.action}
                           </span>
                         </div>
