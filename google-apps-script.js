@@ -6,19 +6,28 @@
 // - Feuille "Historique": id | timestamp | sigle | action | actionType
 
 function doGet(e) {
-  return handleRequest(e);
+  return handleRequest(e, "GET");
 }
 
 function doPost(e) {
-  return handleRequest(e);
+  return handleRequest(e, "POST");
 }
 
-function handleRequest(e) {
+function handleRequest(e, method) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const pretsSheet = ss.getSheetByName("Prets");
   const histoSheet = ss.getSheetByName("Historique");
 
-  const action = e.parameter.action;
+  // Récupérer les paramètres selon la méthode
+  let action, data;
+
+  if (method === "POST" && e.parameter) {
+    action = e.parameter.action;
+    data = e.parameter.data;
+  } else if (e.parameter) {
+    action = e.parameter.action;
+    data = e.parameter.data;
+  }
 
   try {
     let result;
@@ -28,11 +37,11 @@ function handleRequest(e) {
         result = loadData(pretsSheet, histoSheet);
         break;
       case "save":
-        const data = JSON.parse(e.parameter.data);
-        result = saveData(pretsSheet, histoSheet, data);
+        const parsedData = JSON.parse(data);
+        result = saveData(pretsSheet, histoSheet, parsedData);
         break;
       default:
-        result = { error: "Action inconnue" };
+        result = { error: "Action inconnue: " + action };
     }
 
     return ContentService

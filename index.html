@@ -391,10 +391,15 @@
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
         setSyncing(true);
         try {
-          const url = new URL(GOOGLE_SCRIPT_URL);
-          url.searchParams.append("action", "save");
-          url.searchParams.append("data", JSON.stringify(data));
-          const response = await fetch(url.toString(), { method: "GET" });
+          // Utiliser POST avec FormData pour éviter les problèmes d'encodage URL
+          const formData = new FormData();
+          formData.append("action", "save");
+          formData.append("data", JSON.stringify(data));
+
+          const response = await fetch(GOOGLE_SCRIPT_URL, {
+            method: "POST",
+            body: formData,
+          });
           const text = await response.text();
           const result = JSON.parse(text);
           if (result.error) throw new Error(result.error);
