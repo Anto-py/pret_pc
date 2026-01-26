@@ -342,13 +342,17 @@
           const data = JSON.parse(text);
           if (data.error) throw new Error(data.error);
 
-          // Migration: compatibilité avec l'ancien format (nbPC -> nb, type manquant -> "pc")
-          const pretsNormalises = (data.pretsActifs || []).map(p => ({
-            ...p,
-            nb: p.nb ?? p.nbPC ?? 0,
-            type: p.type || "pc",
-            retournes: p.retournes ?? 0,
-          }));
+          // Migration et filtrage des données invalides
+          const pretsNormalises = (data.pretsActifs || [])
+            .map(p => ({
+              ...p,
+              nb: parseInt(p.nb ?? p.nbPC ?? 0, 10),
+              type: p.type || "pc",
+              retournes: parseInt(p.retournes ?? 0, 10),
+              // Nettoyer l'heure si c'est une date ISO bizarre
+              heure: String(p.heure || "").includes("1899") ? "?" : String(p.heure || "?"),
+            }))
+            .filter(p => !isNaN(p.nb) && p.nb > 0); // Filtrer les prêts invalides
 
           // Migration historique: type -> actionType
           const histoNormalise = (data.historique || []).map(h => ({
@@ -366,13 +370,16 @@
             const stored = localStorage.getItem(STORAGE_KEY);
             if (stored) {
               const data = JSON.parse(stored);
-              // Même migration pour les données locales
-              const pretsNormalises = (data.pretsActifs || []).map(p => ({
-                ...p,
-                nb: p.nb ?? p.nbPC ?? 0,
-                type: p.type || "pc",
-                retournes: p.retournes ?? 0,
-              }));
+              // Même migration et filtrage pour les données locales
+              const pretsNormalises = (data.pretsActifs || [])
+                .map(p => ({
+                  ...p,
+                  nb: parseInt(p.nb ?? p.nbPC ?? 0, 10),
+                  type: p.type || "pc",
+                  retournes: parseInt(p.retournes ?? 0, 10),
+                  heure: String(p.heure || "").includes("1899") ? "?" : String(p.heure || "?"),
+                }))
+                .filter(p => !isNaN(p.nb) && p.nb > 0);
               const histoNormalise = (data.historique || []).map(h => ({
                 ...h,
                 actionType: h.actionType || h.type || "pret",
